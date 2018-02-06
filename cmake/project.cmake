@@ -16,6 +16,10 @@ get_filename_component( SOURCE_DIR ${cmakeguide_SOURCE_DIR} PATH) # SOURCE_DIR �
                                                                   # https://cmake.org/cmake/help/v3.0/command/get_filename_component.html
 message("SOURCE_DIR : " ${SOURCE_DIR})
 
+if (MSVC)
+  add_definitions(-DWin32) # 添加 宏定义Win32
+endif (MSVC)
+
 
 ############################ 静态库 ##################################
 
@@ -24,28 +28,67 @@ set(static_files
   ${SOURCE_DIR}/libstatic/libstatic.cpp
 )
 
-add_library(libstatic STATIC
-  ${static_files})
-#target_link_libraries(FSCommon ${CMAKE_THREAD_LIBS_INIT})
-target_include_directories(libstatic PUBLIC ${SOURCE_DIR}/libstatic)
+add_library(libstatic STATIC ${static_files})  # 添加一个静态库 libstatic , 使用 static_files 的文件
 
-set_target_properties(commom PROPERTIES
-    OUTPUT_NAME ${LIB_PREFIX}commom
-    DEBUG_POSTFIX "${DEBUG_POSTFIX}")
+target_include_directories(libstatic PUBLIC ${SOURCE_DIR}/libstatic)  # libstatic 添加 include 目录 , PUBLIC 表示 包含libstatic库的其他库或者进程也include这个目录
+                                                                      # 也可使用 PRIVATE 表示 只这个库使用,包含libstatic库的,不include这个目录
 
 
-if(MSVC AND BUILD_SHARED_LIBS)
-  target_compile_definitions(commom
-    PUBLIC  USE_DLLS
-    PRIVATE LIB_EXPORTS)
+target_compile_definitions(libstatic PUBLIC LIBSTATIC)                # 添加宏定义 , PUBLIC 表示 包含这个libstatic库的其他库或者进程也有这个宏定义
+                                                                      # 也可使用 PRIVATE 表示 只这个库使用,包含这个库的,没有这个宏定义
+
+set(DEBUG_POSTFIX "_d" )
+
+set_target_properties(libstatic PROPERTIES
+    OUTPUT_NAME ${LIB_PREFIX}libstatic
+    DEBUG_POSTFIX "${DEBUG_POSTFIX}")         # 设置属性,属性列表见 https://cmake.org/cmake/help/v3.8/manual/cmake-properties.7.html#target-properties
+
+
+############################ 动态库 ##################################
+
+set(shared_files
+  ${SOURCE_DIR}/libshared/common.h
+  ${SOURCE_DIR}/libshared/libshared.h
+  ${SOURCE_DIR}/libshared/libshared.cpp
+)
+
+add_library(libshared SHARED ${shared_files})  # 添加一个动态库 libshared , 使用 shared_files 的文件
+
+target_include_directories(libshared PUBLIC ${SOURCE_DIR}/libshared)  # libstatic 添加 include 目录 , PUBLIC 表示 包含libstatic库的其他库或者进程也include这个目录
+                                                                      # 也可使用 PRIVATE 表示 只这个库使用,包含libstatic库的,不include这个目录
+
+
+target_compile_definitions(libshared PUBLIC LIBSHARED)                # 添加宏定义 , PUBLIC 表示 包含这个libstatic库的其他库或者进程也有这个宏定义
+                                                                      # 也可使用 PRIVATE 表示 只这个库使用,包含这个库的,没有这个宏定义
+
+if(MSVC)
+  target_compile_definitions(libshared
+        PUBLIC  USE_DLLS
+        PRIVATE LIB_EXPORTS)
 endif()
 
-if(BUILD_TEST)
-  set(libcommon_test_files
-    ${SOURCE_DIR}/common/test/test_libcommon.cpp
+
+set_target_properties(libshared PROPERTIES
+    OUTPUT_NAME ${LIB_PREFIX}libshared
+    DEBUG_POSTFIX "${DEBUG_POSTFIX}")         # 设置属性,属性列表见 https://cmake.org/cmake/help/v3.8/manual/cmake-properties.7.html#target-properties
+
+
+############################ 程序 ##################################
+
+  set(progress_files
+    ${SOURCE_DIR}/progress/main.cpp
+    ${SOURCE_DIR}/progress/progress.h
+    ${SOURCE_DIR}/progress/progress.cpp
   )
 
-  add_executable(test_libcommon ${libcommon_test_files})
-  target_link_libraries(test_libcommon commom)
+  add_executable(progress ${progress_files})
 
-endif()
+  set_target_properties(progress PROPERTIES 
+                        DEBUG_POSTFIX "${DEBUG_POSTFIX}")         # 设置属性,属性列表见 https://cmake.org/cmake/help/v3.8/manual/cmake-properties.7.html#target-properties
+
+  target_link_libraries(progress libshared libstatic )  # 添加包含的库
+
+
+
+############################ install ##################################
+
