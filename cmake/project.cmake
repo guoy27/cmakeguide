@@ -92,3 +92,11 @@ set_target_properties(libshared PROPERTIES
 
 ############################ install ##################################
 
+  install(TARGETS libshared libstatic progress
+    RUNTIME DESTINATION ${SOURCE_DIR}/build/bin                         # 指定执行程序的安装目录,dll版本的动态库也在这里
+    LIBRARY DESTINATION ${SOURCE_DIR}/build/lib                         # 非dll的动态库,放在这里
+    ARCHIVE DESTINATION ${SOURCE_DIR}/build/lib/static                  # 静态库放在这里,dll的lib也在这里
+                                                                  # 指定相对路径,会按照默认的路径按照 
+                                                                  # linux 默认位置 /usr/local  , windows 默认位置 c:/Program Files/${PROJECT_NAME}
+    )
+
