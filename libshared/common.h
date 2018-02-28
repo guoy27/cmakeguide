@@ -6,4 +6,6 @@
 	#else
 	#define LIB_SHARED_API __declspec(dllimport)
 	#endif
+#else
+	#define LIB_SHARED_API  
 #endif
